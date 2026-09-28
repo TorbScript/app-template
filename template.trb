@@ -1,0 +1,30 @@
+/**
+ * `torb new --template app` and `torb init --template app` read this file statically, the way `project.trb` itself
+ * is read - nothing here is evaluated (docs/tooling/torb-new.md, "Writing a template").
+ */
+
+title = "App"
+description = "a command-line program"
+name = "hello-app"
+
+replace {
+  file "project.trb" {
+    text "torb/hello-app", becomes: "owner/name"
+  }
+  file "README.md" {
+    text "torb/hello-app", becomes: "owner/name"
+    text "hello-app", becomes: "name"
+  }
+  file ".forgejo/workflows/release.yml" {
+    text "hello-app", becomes: "name"
+  }
+  file ".github/workflows/release.yml" {
+    text "hello-app", becomes: "name"
+  }
+}
+
+drop {
+  path ".github", unless: "ci", isAnyOf: "github,both"
+  path ".forgejo", unless: "ci", isAnyOf: "forgejo,both"
+  path "LICENSE", unless: "license", isAnyOf: "mit"
+}
