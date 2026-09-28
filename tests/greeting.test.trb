@@ -1,0 +1,10 @@
+use test from "std/test"
+use greetingFor from "../src/greeting"
+
+test "greets the name it is given" {
+  assert(greetingFor(Some("Ada")) == "Hello, Ada!")
+}
+
+test "greets the world when there is no argument" {
+  assert(greetingFor(None) == "Hello, World!")
+}

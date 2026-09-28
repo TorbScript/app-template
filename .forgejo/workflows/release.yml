@@ -1,0 +1,53 @@
+# Pushing a tag v* builds a native release binary and attaches it to a release on this forge, through its REST API
+# (there is no action in the marketplace for it here, and the call is three lines). This app is not published to the
+# registry - see README.md, "Publishing" - so there is no trusted-publishing step here, unlike
+# package-template's publish.yml. secrets.GITHUB_TOKEN is the token Forgejo Actions hands every job for its own API,
+# under the name GitHub Actions uses; contents: write lets it create a release.
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      TORB_INSTALL_CHANNEL: nightly # see ci.yml
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - name: Install torb
+        run: |
+          curl -fsSL https://torb.dev/install.sh | sh
+          echo "$HOME/.torb/bin" >>"$GITHUB_PATH"
+
+      - run: torb build
+
+      - name: Archive the binary
+        run: |
+          cd build/release
+          tar -czf ../../hello-app-linux-x64.tar.gz hello-app
+
+      - name: Create the release and attach the binary
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SERVER: ${{ forgejo.server_url }}
+          REPOSITORY: ${{ forgejo.repository }}
+          TAG: ${{ forgejo.ref_name }}
+        run: |
+          release_id=$(
+            curl -fsSL -X POST "$SERVER/api/v1/repos/$REPOSITORY/releases" \
+              -H "Authorization: token $TOKEN" -H "Content-Type: application/json" \
+              -d "{\"tag_name\":\"$TAG\",\"name\":\"$TAG\"}" | jq -r .id
+          )
+          curl -fsSL -X POST \
+            "$SERVER/api/v1/repos/$REPOSITORY/releases/$release_id/assets?name=hello-app-linux-x64.tar.gz" \
+            -H "Authorization: token $TOKEN" -H "Content-Type: application/gzip" \
+            --data-binary @hello-app-linux-x64.tar.gz

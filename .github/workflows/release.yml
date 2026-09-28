@@ -1,0 +1,61 @@
+# Pushing a tag v* builds a native release binary and attaches it to a GitHub release. This app is not published to
+# the registry - see README.md, "Publishing" - so there is no trusted-publishing step here, unlike
+# package-template's publish.yml.
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        # Add macos-latest (macos-arm64) or windows-latest (windows-x64) here once you need them; torb build always
+        # builds for the machine it runs on.
+        include:
+          - runner: ubuntu-latest
+            target: linux-x64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    env:
+      TORB_INSTALL_CHANNEL: nightly # see ci.yml
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - name: Install torb
+        run: |
+          curl -fsSL https://torb.dev/install.sh | sh
+          echo "$HOME/.torb/bin" >>"$GITHUB_PATH"
+
+      - run: torb build
+
+      - name: Archive the binary
+        run: |
+          cd build/release
+          tar -czf "$GITHUB_WORKSPACE/hello-app-${{ matrix.target }}.tar.gz" hello-app
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa9 # v4.6.2
+        with:
+          name: hello-app-${{ matrix.target }}
+          path: hello-app-${{ matrix.target }}.tar.gz
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: hello-app-*
+          merge-multiple: true
+
+      - name: Create the release and attach the binaries
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create "${{ github.ref_name }}" ./*.tar.gz --repo "${{ github.repository }}" --generate-notes

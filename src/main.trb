@@ -1,0 +1,7 @@
+// `torb run` (interpreted) or `torb run --native` (compiled) - see README.md. `src/main.trb` is the program by its
+// own name alone, so it needs no line in project.trb (docs/design/PROJECT.md section 3). `greetingFor` lives in
+// `greeting.trb` so `tests/` can check it directly, without running this file.
+use Process from "std/process"
+use greetingFor from "./greeting"
+
+print greetingFor(Process.arguments().first())

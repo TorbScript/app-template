@@ -1,0 +1,6 @@
+/** The one line `main.trb` prints, kept in its own module so `tests/` can check it without running the whole app. */
+
+/** What the app prints for `name`, or for `None` where no argument was given. */
+public fn greetingFor(name: String?): String {
+  "Hello, {name ?? "World"}!"
+}

@@ -1,0 +1,4 @@
+name = "torb/hello-app"
+version = "0.1.0"
+description = "A tiny command-line app - fork this template to build your own"
+license = "MIT"

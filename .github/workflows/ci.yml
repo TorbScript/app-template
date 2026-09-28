@@ -1,0 +1,37 @@
+# Every push to main and every pull request: install torb and run the checks an app has to pass. See release.yml for
+# what a tag does.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # TorbScript has no stable release yet (2026-09-28): the "stable" line of
+      # https://torb.dev/download/versions.txt does not exist, and install.sh's own default, the stable channel,
+      # would fail. Delete this line once https://torb.dev/download/versions.txt lists one.
+      TORB_INSTALL_CHANNEL: nightly
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - name: Install torb
+        run: |
+          curl -fsSL https://torb.dev/install.sh | sh
+          echo "$HOME/.torb/bin" >>"$GITHUB_PATH"
+
+      - run: torb format --check .
+      - run: torb check .
+      - run: torb test
+      - run: torb doc --check .
+      - run: torb build
