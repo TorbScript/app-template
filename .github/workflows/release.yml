@@ -31,6 +31,8 @@ jobs:
           curl -fsSL https://torb.dev/install.sh | sh
           echo "$HOME/.torb/bin" >>"$GITHUB_PATH"
 
+      - name: Install the dependencies of project.lock.trb
+        run: if [ -f project.lock.trb ]; then torb install; fi
       - run: torb build
 
       - name: Archive the binary
